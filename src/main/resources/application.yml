@@ -1,0 +1,88 @@
+server:
+  port: 8002
+
+spring:
+  application:
+    name: question-recommend-milvus
+
+  # Redis 配置（Lettuce + 连接池）
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DB:0}
+      timeout: 3s
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+          max-wait: 3s
+
+  # PostgreSQL 配置（元数据存储）
+  datasource:
+    url: jdbc:postgresql://${PG_HOST:localhost}:${PG_PORT:5432}/${PG_DATABASE:question_bank}
+    username: ${PG_USERNAME:postgres}
+    password: ${PG_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 5000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          batch_size: 50
+
+# ====== 业务配置 ======
+app:
+  # Milvus 向量数据库配置
+  milvus:
+    host: ${MILVUS_HOST:localhost:19530}
+    connect-timeout-ms: 10000
+    rpc-timeout-ms: 30000
+    collection: question_vectors
+    vector-field: vector
+    vector-dimension: 768
+    index-type: HNSW
+    hnsw-m: 16
+    hnsw-ef-construction: 200
+    search-ef: 200
+    auto-init: true
+
+  # Redis 缓存配置
+  cache:
+    enabled: ${ENABLE_CACHE:true}
+    ttl-seconds: ${REDIS_TTL:300}
+
+  # 通义千问向量服务
+  vector:
+    url: ${QW_HOST:http://127.0.0.1:8111/text_to_vector}
+    auth: ${QW_AUTH:}
+
+  # 并发控制
+  concurrency:
+    milvus-semaphore: 10
+    batch-milvus-semaphore: 10
+    batch-chunk-semaphore: 3
+    batch-chunk-size: 25
+
+  # 日志
+  log:
+    verbose-recommend: ${VERBOSE_RECOMMEND_LOG:false}
+
+  # 章节标签数据文件
+  tag-data-path: classpath:tagType10_list.json
+
+# ====== 日志配置 ======
+logging:
+  level:
+    root: INFO
+    com.questionrecommend: DEBUG
+    io.milvus: WARN
