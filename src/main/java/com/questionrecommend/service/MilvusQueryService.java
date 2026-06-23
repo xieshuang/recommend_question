@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 /**
@@ -69,7 +68,6 @@ public class MilvusQueryService {
      * @param disableIds       排除 ID 列表
      * @param pathSize         召回数量
      * @param mode             推荐模式
-     * @param semaphore        信号量
      * @return 查询结果（含 _id, _score, _normalizedScore, _path 及标量字段）
      */
     public List<Map<String, Object>> executeR0Path(
@@ -83,16 +81,11 @@ public class MilvusQueryService {
             List<String> questionType,
             List<String> disableIds,
             int pathSize,
-            String mode,
-            Semaphore semaphore) {
+            String mode) {
 
         long startNs = System.nanoTime();
-        boolean acquired = false;
 
         try {
-            semaphore.acquire();
-            acquired = true;
-
             // 1. 构建过滤表达式
             String expr = buildFilterExpr(targetSubject, targetPhase,
                     targetBaseTypeId, difficulty, questionType, disableIds, null);
@@ -170,15 +163,9 @@ public class MilvusQueryService {
 
             return scoredResults;
 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.warn("R0 路径信号量获取中断");
-            return Collections.emptyList();
         } catch (Exception e) {
             log.warn("R0 路径查询异常: {}", e.getMessage());
             return Collections.emptyList();
-        } finally {
-            if (acquired) semaphore.release();
         }
     }
 
@@ -197,7 +184,6 @@ public class MilvusQueryService {
      * @param disableIds       排除 ID 列表
      * @param pathSize         召回数量
      * @param mode             推荐模式
-     * @param semaphore        信号量
      * @return 查询结果
      */
     public List<Map<String, Object>> executeR1Path(
@@ -209,16 +195,11 @@ public class MilvusQueryService {
             List<String> questionType,
             List<String> disableIds,
             int pathSize,
-            String mode,
-            Semaphore semaphore) {
+            String mode) {
 
         long startNs = System.nanoTime();
-        boolean acquired = false;
 
         try {
-            semaphore.acquire();
-            acquired = true;
-
             // 构建过滤表达式
             String expr = buildFilterExpr(targetSubject, targetPhase,
                     targetBaseTypeId, difficulty, questionType, disableIds, mode);
@@ -236,15 +217,9 @@ public class MilvusQueryService {
 
             return results;
 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.warn("R1 路径信号量获取中断");
-            return Collections.emptyList();
         } catch (Exception e) {
             log.warn("R1 路径查询异常: {}", e.getMessage());
             return Collections.emptyList();
-        } finally {
-            if (acquired) semaphore.release();
         }
     }
 

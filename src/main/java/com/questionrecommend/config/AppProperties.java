@@ -20,7 +20,7 @@ public class AppProperties {
     /** 向量服务配置（通义千问 text_to_vector） */
     private Vector vector = new Vector();
 
-    /** 并发控制配置 */
+    /** 并发控制配置（保留 chunk-size 做批量分组） */
     private Concurrency concurrency = new Concurrency();
 
     /** 日志配置 */
@@ -137,24 +137,14 @@ public class AppProperties {
     }
 
     /**
-     * 并发控制配置 — 等价 Python 信号量配置
+     * 并发控制配置
+     * <p>
+     * 虚拟线程下不需要信号量限流，仅保留批量分组大小配置。
      */
     public static class Concurrency {
-        /** Milvus 并发信号量（等价 _es_semaphore = 10） */
-        private int milvusSemaphore = 10;
-        /** 批量接口并发信号量 */
-        private int batchMilvusSemaphore = 10;
-        /** 批量接口 chunk 间并发上限（等价 _batch_chunk_semaphore = 3） */
-        private int batchChunkSemaphore = 3;
         /** 每组处理题目数 */
         private int batchChunkSize = 25;
 
-        public int getMilvusSemaphore() { return milvusSemaphore; }
-        public void setMilvusSemaphore(int milvusSemaphore) { this.milvusSemaphore = milvusSemaphore; }
-        public int getBatchMilvusSemaphore() { return batchMilvusSemaphore; }
-        public void setBatchMilvusSemaphore(int batchMilvusSemaphore) { this.batchMilvusSemaphore = batchMilvusSemaphore; }
-        public int getBatchChunkSemaphore() { return batchChunkSemaphore; }
-        public void setBatchChunkSemaphore(int batchChunkSemaphore) { this.batchChunkSemaphore = batchChunkSemaphore; }
         public int getBatchChunkSize() { return batchChunkSize; }
         public void setBatchChunkSize(int batchChunkSize) { this.batchChunkSize = batchChunkSize; }
     }

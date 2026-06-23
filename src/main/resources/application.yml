@@ -66,11 +66,8 @@ app:
     url: ${QW_HOST:http://127.0.0.1:8111/text_to_vector}
     auth: ${QW_AUTH:}
 
-  # 并发控制
+  # 并发控制（虚拟线程下无需信号量，仅保留批量分组大小）
   concurrency:
-    milvus-semaphore: 10
-    batch-milvus-semaphore: 10
-    batch-chunk-semaphore: 3
     batch-chunk-size: 25
 
   # 日志

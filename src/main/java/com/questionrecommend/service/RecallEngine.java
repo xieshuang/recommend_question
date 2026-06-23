@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.stream.Collectors;
 
 /**
  * 多路召回引擎 — 核心推荐流水线
@@ -57,7 +56,6 @@ public class RecallEngine {
     private final RedisCacheService cacheService;
     private final AppProperties properties;
     private final ExecutorService virtualThreadExecutor;
-    private final Semaphore milvusSemaphore;
 
     /** 路径名称到中文映射 */
     private static final Map<String, String> PATH_NAME_MAP = Map.of(
@@ -72,8 +70,7 @@ public class RecallEngine {
                          DeduplicationService deduplicationService,
                          RedisCacheService cacheService,
                          AppProperties properties,
-                         @Qualifier("virtualThreadExecutor") ExecutorService virtualThreadExecutor,
-                         @Qualifier("milvusSemaphore") Semaphore milvusSemaphore) {
+                         @Qualifier("virtualThreadExecutor") ExecutorService virtualThreadExecutor) {
         this.milvusClient = milvusClient;
         this.milvusQueryService = milvusQueryService;
         this.rankingService = rankingService;
@@ -81,7 +78,6 @@ public class RecallEngine {
         this.cacheService = cacheService;
         this.properties = properties;
         this.virtualThreadExecutor = virtualThreadExecutor;
-        this.milvusSemaphore = milvusSemaphore;
     }
 
     /**
@@ -298,12 +294,12 @@ public class RecallEngine {
                 milvusQueryService.executeR0Path(
                         targetVector, targetMainKlg, targetAllKlg,
                         targetSubject, targetPhase, targetBaseTypeId,
-                        difficulty, questionType, disableIds, pathSize, mode, milvusSemaphore);
+                        difficulty, questionType, disableIds, pathSize, mode);
 
         Callable<List<Map<String, Object>>> r1Task = () ->
                 milvusQueryService.executeR1Path(
                         targetVector, targetSubject, targetPhase, targetBaseTypeId,
-                        difficulty, questionType, disableIds, pathSize, mode, milvusSemaphore);
+                        difficulty, questionType, disableIds, pathSize, mode);
 
         List<Future<List<Map<String, Object>>>> futures = virtualThreadExecutor.invokeAll(
                 Arrays.asList(r0Task, r1Task));
@@ -427,7 +423,7 @@ public class RecallEngine {
 
             List<Map<String, Object>> supplementary = milvusQueryService.executeR1Path(
                     targetVector, targetSubject, targetPhase, targetBaseTypeId,
-                    difficulty, questionType, disableIds, expandedSize, mode, milvusSemaphore);
+                    difficulty, questionType, disableIds, expandedSize, mode);
 
             log.debug("第 {} 轮补充查询: 召回 {} 条", round + 1, supplementary.size());
             supplementCount += supplementary.size();

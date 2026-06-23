@@ -31,7 +31,7 @@
 
 | 层级 | 选型 | 说明 |
 |------|------|------|
-| JDK | **Java 17** | 兼容 Java 17 LTS（原设计 Java 21 虚拟线程，降级为 CachedThreadPool + Semaphore） |
+| JDK | **Java 21** | 虚拟线程 (`Executors.newVirtualThreadPerTaskExecutor()`)，无信号量限流 |
 | 框架 | **Spring Boot 3.3.x** | 自动配置、健康检查、指标采集 |
 | 向量数据库 | **Milvus 2.4.x** | ANN 向量检索 + 标量过滤（替代 ES KNN + Bool Query） |
 | 元数据存储 | **PostgreSQL** (可选) | 存储 answer/analysis/options 等 JSON 嵌套字段 |
@@ -288,14 +288,11 @@ SimHash + MD5 两级去重
 
 ## 性能与并发
 
-并发模型：**CachedThreadPool + Semaphore**
+并发模型：**Java 21 虚拟线程**（无需信号量，虚拟线程在 IO 阻塞时自动 yield）
 
 | 参数 | 默认值 | 说明 |
 |------|:------:|------|
-| `concurrency.milvusSemaphore` | 10 | 单路 Milvus 并发上限 |
-| `concurrency.batchMilvusSemaphore` | 10 | 批量 Milvus 并发上限 |
-| `concurrency.batchChunkSemaphore` | 3 | 批量处理 chunk 并发上限 |
-| `concurrency.batchChunkSize` | 25 | 每组处理题数 |
+| `concurrency.batchChunkSize` | 25 | 每批虚拟线程处理题数 |
 
 ## 环境变量
 

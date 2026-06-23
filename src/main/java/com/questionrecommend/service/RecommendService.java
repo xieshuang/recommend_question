@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.stream.Collectors;
 
 /**
  * 推荐编排服务 — 等价 Python similar.py 的路由处理函数
@@ -27,18 +26,15 @@ public class RecommendService {
     private final RedisCacheService cacheService;
     private final AppProperties properties;
     private final ExecutorService virtualThreadExecutor;
-    private final Semaphore batchChunkSemaphore;
 
     public RecommendService(RecallEngine recallEngine,
                              RedisCacheService cacheService,
                              AppProperties properties,
-                             @Qualifier("virtualThreadExecutor") ExecutorService virtualThreadExecutor,
-                             @Qualifier("batchChunkSemaphore") Semaphore batchChunkSemaphore) {
+                             @Qualifier("virtualThreadExecutor") ExecutorService virtualThreadExecutor) {
         this.recallEngine = recallEngine;
         this.cacheService = cacheService;
         this.properties = properties;
         this.virtualThreadExecutor = virtualThreadExecutor;
-        this.batchChunkSemaphore = batchChunkSemaphore;
     }
 
     /**
@@ -122,31 +118,26 @@ public class RecommendService {
                 List<String> chunkIds = groupIds.subList(j, chunkEnd);
 
                 futures.add(virtualThreadExecutor.submit(() -> {
-                    try {
-                        batchChunkSemaphore.acquire();
-                        for (String id : chunkIds) {
-                            try {
-                                RecallEngine.RecallResult result = recallEngine.recommend(
-                                        id, request.getSize(),
-                                        request.getDisableQuestion(),
-                                        request.getSimilarityWeight(),
-                                        request.getTagWeight(),
-                                        request.getMainKlgWeight(),
-                                        request.getAllKlgWeight(),
-                                        request.getDifficulty(),
-                                        request.getQuestionType(),
-                                        request.getRecommendMode(),
-                                        null, null,
-                                        request.isUseCache(), null);
-                                allResults.add(result);
-                            } catch (Exception e) {
-                                log.warn("批量推荐单项失败: {} -> {}", id, e.getMessage());
-                                allResults.add(new RecallEngine.RecallResult(
-                                        id, false, Collections.emptyList(), 0, false, null));
-                            }
+                    for (String id : chunkIds) {
+                        try {
+                            RecallEngine.RecallResult result = recallEngine.recommend(
+                                    id, request.getSize(),
+                                    request.getDisableQuestion(),
+                                    request.getSimilarityWeight(),
+                                    request.getTagWeight(),
+                                    request.getMainKlgWeight(),
+                                    request.getAllKlgWeight(),
+                                    request.getDifficulty(),
+                                    request.getQuestionType(),
+                                    request.getRecommendMode(),
+                                    null, null,
+                                    request.isUseCache(), null);
+                            allResults.add(result);
+                        } catch (Exception e) {
+                            log.warn("批量推荐单项失败: {} -> {}", id, e.getMessage());
+                            allResults.add(new RecallEngine.RecallResult(
+                                    id, false, Collections.emptyList(), 0, false, null));
                         }
-                    } finally {
-                        batchChunkSemaphore.release();
                     }
                     return null;
                 }));
